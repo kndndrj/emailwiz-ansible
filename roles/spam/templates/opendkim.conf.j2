@@ -1,0 +1,21 @@
+# See /usr/share/doc/opendkim/examples/opendkim.conf.sample for a commented, more complete version
+
+Syslog           yes
+SyslogSuccess    yes
+
+OversignHeaders  From
+
+UserID           opendkim
+UMask            007
+
+Socket           inet:{{ socket_number }}@localhost
+
+PidFile          /run/opendkim/opendkim.pid
+
+InternalHosts    refile:{{ trusted_hosts_path }}
+
+KeyTable         file:{{ key_table_path }}
+TrustAnchorFile  /usr/share/dns/root.key
+SigningTable     refile:{{ signing_table_path }}
+
+# vim:ft=conf

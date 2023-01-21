@@ -1,0 +1,59 @@
+---
+- name: Install packages
+  apt:
+    pkg:
+      - "opendkim"
+      - "spamassassin"
+      - "spamc"
+    state: latest
+    update_cache: yes
+  notify: 'restart_mail_services'
+
+- name: Ensure dkim directory exists
+  file:
+    path: '{{ opendkim_directory }}'
+    state: directory
+    recurse: yes
+    mode: "0644"
+    owner: opendkim
+    group: opendkim
+
+- name: Check if dkim key exists
+  stat:
+    path: '{{ opendkim_directory }}/{{ host }}.txt'
+  register: opendkim_key
+
+- name: Generate dkim keys
+  shell: opendkim-genkey -D {{ opendkim_directory }}/ -d "{{ domain }}" -s "{{ host }}"
+  notify: restart_mail_services
+  when: opendkim_key.stat.exists == false
+
+- name: Configure opendkim config files
+  template:
+    src: '{{ item.src }}'
+    dest: '{{ item.dest }}'
+    mode: "0644"
+  loop:
+    - { src: templates/opendkim.conf.j2, dest: /etc/opendkim.conf }
+    - { src: templates/keytable.j2, dest: '{{ key_table_path }}' }
+    - { src: templates/signingtable.j2, dest: '{{ signing_table_path }}' }
+    - { src: templates/trustedhosts.j2, dest: '{{ trusted_hosts_path }}' }
+  notify: 'restart_mail_services'
+
+# Save DNS records to a file
+
+- name: Get dkim public key pvalue
+  shell: 'tr -d "\n" <{{ opendkim_directory }}/{{ host }}.txt | sed "s/k=rsa.* \"p=/k=rsa; p=/;s/\"\s*\"//;s/\"\s*).*//" | grep -o "p=.*"'
+  register: dkim_public_pval
+
+- name: Create a DNS inputs file
+  lineinfile:
+    dest: '{{ dns_records_file }}'
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+    create: yes
+    state: present
+  loop:
+    - { regexp: "^{{ host }}._domainkey.{{ domain }}", line: "{{ host }}._domainkey.{{ domain }}  TXT  v=DKIM1; k=rsa; {{ dkim_public_pval.stdout }}" }
+    - { regexp: "^_dmarc.{{ domain }}", line: "_dmarc.{{ domain }}  TXT  v=DMARC1; p=reject; rua=mailto:dmarc@{{ domain }}; fo=1" }
+    - { regexp: "^{{ domain }}", line: "{{ domain }}  TXT  v=spf1 mx a:{{ mail_domain }} -all" }

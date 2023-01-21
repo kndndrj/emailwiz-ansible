@@ -1,0 +1,3 @@
+sieve_directory: '/var/lib/dovecot/sieve'
+mailbox_directory: 'Mail'
+inbox_directory: '{{ mailbox_directory }}/Inbox'

@@ -1,0 +1,23 @@
+---
+- name: Install packages
+  apt:
+    state: latest
+    pkg:
+      - certbot
+    update_cache: yes
+
+- name: Check if letsencrypt certificate exists
+  stat:
+    path: /etc/letsencrypt/live/{{ mail_domain }}/fullchain.pem
+  register: letsencrypt_certs
+
+- name: Generate certificates
+  shell: certbot certonly --standalone -d {{ mail_domain }} -m {{ email_for_updates }} --agree-tos
+  when: letsencrypt_certs.stat.exists == false
+
+- name: Add a letsencrypt post-deploy hook
+  lineinfile:
+    dest: /etc/letsencrypt/cli.ini
+    regexp: "^deploy-hook = systemctl"
+    line: deploy-hook = systemctl reload postfix && systemctl reload dovecot
+    state: present

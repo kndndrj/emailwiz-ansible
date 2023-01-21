@@ -1,0 +1,2 @@
+mailbox_directory: 'Mail'
+inbox_directory: '{{ mailbox_directory }}/Inbox'

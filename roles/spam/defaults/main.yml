@@ -1,0 +1,5 @@
+---
+opendkim_directory: '/etc/postfix/dkim'
+trusted_hosts_path: '{{ opendkim_directory }}/trustedhosts' 
+key_table_path: '{{ opendkim_directory }}/keytable'
+signing_table_path: '{{ opendkim_directory }}/signingtable'

@@ -1,0 +1,68 @@
+---
+- name: Update and upgrade the system (Debian and Ubuntu)
+  when: ansible_os_family == 'Debian'
+  apt:
+    upgrade: yes
+    update_cache: yes
+
+- name: Install base packages
+  package: 
+    name:
+      - ufw
+      - apt-transport-https
+      - ca-certificates
+      - gpg
+      - gnupg-agent
+      - software-properties-common
+    state: present 
+
+- name: Check if reboot is required
+  stat:
+    path: /var/run/reboot-required
+  register: reboot_required_file
+
+- name: Reboot if required
+  reboot:
+    msg: Rebooting due to a kernel update
+  when: reboot_required_file.stat.exists
+
+# Default users
+
+- name: Create default users
+  user:
+    name: '{{ item.name }}'
+    group: '{{ item.group }}'
+    create_home: '{{ item.create_home }}'
+  loop:
+    - { name: vmail, group: vmail, create_home: no }
+    - { name: dmarc, group: mail, create_home: yes }
+
+# Hostnames
+
+- name: Configure hostname
+  hostname:
+    name: "{{ host }}"
+
+- name: Configure hosts
+  lineinfile:
+    dest: /etc/hosts
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+    state: present
+  loop:
+    - { regexp: "^127.0.0.1", line: "127.0.0.1 localhost" }
+    - { regexp: "^::1", line: "::1 localhost" }
+    - { regexp: "^127.0.1.1", line: "127.0.1.1 {{ mail_domain }} {{ host }}" }
+    - { regexp: "^{{ ip_address }}", line: "{{ ip_address }} {{ mail_domain }} {{ host }}" }
+
+# Firewall
+
+- name: Allow access to mailing ports
+  ufw:
+    rule: allow
+    port: '{{ item }}'
+  loop:
+    - "25"
+    - "465"
+    - "587"
+    - "993"

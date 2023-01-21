@@ -1,0 +1,13 @@
+---
+host: mail
+domain: schway.space
+ip_address: "{{ ansible_default_ipv4.address }}"
+mail_domain: "{{ host }}.{{ domain }}"
+smtp_domain: "smtp.{{ domain }}"
+imap_domain: imap.{{ domain }}
+email_for_updates: "postmaster@{{ domain }}"
+dns_records_file: "/opt/dns_records"
+
+mailbox_directory: 'Mail'
+inbox_directory: '{{ mailbox_directory }}/Inbox'
+socket_number: '12301'

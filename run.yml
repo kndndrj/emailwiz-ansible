@@ -1,0 +1,34 @@
+---
+- hosts: myhost
+  become: yes
+  roles:
+    - role: system
+      tags: 
+        - system
+    - role: certbot
+      tags: 
+        - certbot
+    - role: postfix
+      tags: 
+        - postfix
+    - role: dovecot
+      tags: 
+        - dovecot
+    - role: spam
+      tags: 
+        - spam
+
+  handlers:
+    - name: Restart mail services
+      shell: systemctl restart {{ item }}
+      loop:
+        - opendkim
+        - spamassassin
+        - dovecot
+        - postfix
+      listen: restart_mail_services
+
+  post_tasks:
+    - name: Print DNS records to console
+      debug:
+        msg: "DNS records are saved to {{ dns_records_file }}"

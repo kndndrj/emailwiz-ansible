@@ -1,0 +1,20 @@
+---
+- name: Install packages
+  apt:
+    pkg:
+      - "postfix"
+      - "postfix-pcre"
+    state: latest
+    update_cache: yes
+  notify: restart_mail_services
+
+- name: Configure config files
+  template:
+    src: '{{ item.src }}'
+    dest: '{{ item.dest }}'
+    mode: "0644"
+  loop:
+    - { src: templates/main.cf.j2, dest: /etc/postfix/main.cf }
+    - { src: templates/master.cf.j2, dest: /etc/postfix/master.cf }
+    - { src: templates/header_checks.j2, dest: /etc/postfix/header_checks }
+  notify: restart_mail_services
